@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Checker SFB1</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; color: #000; }
+        h2 { margin-top: 30px; margin-bottom: 20px; font-size: 22px; font-weight: bold; text-align: center; }
+        .card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; max-width: 350px; box-sizing: border-box; margin-bottom: 25px; font-size: 15px; line-height: 2; }
+        .card p { margin: 6px 0; border-bottom: 1px solid #f0f0f0; padding-bottom: 4px; }
+        .card p:last-child { border: none; }
+        button { background-color: #139a43; color: #fff; border: none; padding: 12px 0; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; width: 160px; display: block; margin-left: auto; margin-right: auto; }
+        #status { font-weight: bold; font-size: 24px; text-align: center; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <h2>IP Checker SFB1</h2>
+
+    <div class="card">
+        <p><strong>IP Address:</strong> <span id="ip">Loading...</span></p>
+        <p><strong>ISP:</strong> <span id="isp">Loading...</span></p>
+        <p><strong>Organization:</strong> <span id="org">Loading...</span></p>
+        <p><strong>City:</strong> <span id="city">Loading...</span></p>
+        <p><strong>Region:</strong> <span id="reg">Loading...</span></p>
+        <p><strong>Country:</strong> <span id="ctr">Loading...</span></p>
+    </div>
+
+    <button onclick="checkIP()">Check</button>
+
+    <div id="status">Checking...</div>
+
+    <script>
+        async function checkIP() {
+            let s = document.getElementById('status');
+            s.innerText = 'Checking...';
+            s.style.color = 'orange';
+
+            // اگر پراکسی بالکل ڈاؤن ہو تو 5 سیکنڈ میں خود ہی ڈپلیکیٹ شو کر دے گا
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            try {
+                let response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) throw new Error('Proxy Blocked');
+                
+                let r = await response.json();
+                
+                document.getElementById('ip').innerText = r.ip || '-';
+                document.getElementById('isp').innerText = r.org || '-';
+                document.getElementById('org').innerText = r.org || '-';
+                document.getElementById('city').innerText = r.city || '-';
+                document.getElementById('reg').innerText = r.region || '-';
+                document.getElementById('ctr').innerText = r.country_name || '-';
+
+                let oldIP = localStorage.getItem('ip_sfb1');
+
+                // اہم سیکیورٹی چیک: اگر آئی پی پرانی والی ہی ہے (یعنی پراکسی نہیں بدلی)
+                if (oldIP === r.ip) {
+                    s.innerText = 'Duplicate';
+                    s.style.color = 'red';
+                } else {
+                    s.innerText = 'Unique';
+                    s.style.color = 'green';
+                    localStorage.setItem('ip_sfb1', r.ip); // نئی آئی پی سیو کر لے گا
+                }
+            } catch (e) {
+                // اگر پراکسی خراب ہو، انٹرنیٹ نہ ہو، یا بلاک ہو تو لازمی طور پر ڈپلیکیٹ دکھائے گا
+                document.getElementById('ip').innerText = 'FAILED';
+                document.getElementById('isp').innerText = 'PROX_ERR';
+                document.getElementById('org').innerText = 'PROX_ERR';
+                document.getElementById('city').innerText = 'FAILED';
+                document.getElementById('reg').innerText = 'FAILED';
+                document.getElementById('ctr').innerText = 'FAILED';
+                
+                s.innerText = 'Duplicate (Proxy Failed)';
+                s.style.color = 'red';
+            }
+        }
+
+        // پیج کھلتے ہی یہ فنکشن خود بخود رن ہو جائے گا، کلک کرنے کی ضرورت نہیں
+        window.onload = checkIP;
+    </script>
+</body>
+</html>
